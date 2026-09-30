@@ -270,6 +270,8 @@
     "amd_slices_per_frame": "AMF 每帧分片数",
     "amd_slices_per_frame_auto": "自动（由客户端决定）",
     "amd_slices_per_frame_desc": "将每帧分成多个分片/瓦片进行并行编码和解码，可降低延迟。对于 H.264/HEVC 设置每帧分片数；对于 AV1 设置每帧瓦片数。设为 0 由客户端决定。",
+    "amd_vbv_frames": "AMF VBV 缓冲深度（帧）",
+    "amd_vbv_frames_desc": "HRD/VBV 缓冲相当于多少帧的数据（1-240）。VBV 大小 =（编码码率 ÷ 帧率）× 本值。默认 1 帧，与 FFmpeg amfenc 及 AVCodec 兼容路径一致；此前的 standalone 路径使用整整 1 秒（约 75 倍），使 HRD 限制形同虚设。若收紧后出现帧节奏卡顿，可调到 4-10 放宽。",
     "amd_usage": "AMF 工作模式",
     "amd_usage_desc": "设置基础编码配置。下列选项会覆盖其中部分设置；该配置还包含其他无法单独调整的设置。",
     "amd_usage_lowlatency": "lowlatency - 低延迟（最快）",

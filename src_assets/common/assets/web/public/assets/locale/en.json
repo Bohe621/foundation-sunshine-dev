@@ -270,6 +270,8 @@
     "amd_slices_per_frame": "AMF Slices Per Frame",
     "amd_slices_per_frame_auto": "Auto (client decides)",
     "amd_slices_per_frame_desc": "Splits each frame into multiple slices/tiles for parallel encoding and decoding, which can reduce latency. For H.264/HEVC this sets slices per frame; for AV1 this sets tiles per frame. Set to 0 to let the client decide.",
+    "amd_vbv_frames": "AMF VBV buffer depth (frames)",
+    "amd_vbv_frames_desc": "How many frames of data the HRD/VBV buffer spans (1-240). VBV size = (encoder bitrate / framerate) x this value. The default of 1 frame matches FFmpeg amfenc and the AVCodec compatibility path; the standalone path previously used a full second of data (~75x deeper), which left the HRD constraint with nothing to enforce. Raise it to 4-10 if a tight VBV causes frame-pacing stalls.",
     "amd_usage": "AMF Usage",
     "amd_usage_desc": "This sets the base encoding profile. All options presented below will override a subset of the usage profile, but there are additional hidden settings applied that cannot be configured elsewhere.",
     "amd_usage_lowlatency": "lowlatency - low latency (fastest)",

@@ -3244,6 +3244,10 @@ namespace platf::dxgi {
         amf_cfg.h264_coding_mode = config::video.amd.amd_coder;
       }
       amf_cfg.max_ltr_frames = config::video.amd.amd_ltr_frames;
+      // HRD/VBV depth applies to the standalone path only; the avcodec_compat
+      // adapter derives its own value from the AVCodec context (see
+      // amf_avcodec_compat.cpp) and ignores this.
+      amf_cfg.vbv_frames = config::video.amd.amd_vbv_frames;
 
       // Pre-Analysis sub-system defaults: enable PAQ + TAQ for better quality at same bitrate
       if (amf_cfg.preanalysis && *amf_cfg.preanalysis) {

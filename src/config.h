@@ -80,6 +80,15 @@ namespace config {
       int amd_ltr_frames = 0;  // LTR frames for RFI (0=disabled by default; matches FFmpeg amfenc behavior to avoid static-region color blocks)
       int amd_slices_per_frame = 0;  // Slices/tiles per frame (0=client decides, 1-4=minimum)
       bool amd_avcodec_compat = false;  // Optional AVCodec-like AMF adapter; false keeps the clean standalone path.
+      // HRD/VBV depth for the standalone path, in frames:
+      //   VBV_BUFFER_SIZE = (encoder_bitrate / effective_fps) * amd_vbv_frames
+      // The standalone path used to pass the raw bitrate here, i.e. a full
+      // second of data (~2.75 MB at 22 Mbps @75fps). That is ~75x deeper than
+      // the avcodec_compat path computes, so a ~1 MB IDR only filled 40% of
+      // the buffer and AMF_*_ENFORCE_HRD never actually engaged. Default 1
+      // (one frame of data) matches the avcodec_compat path and FFmpeg amfenc.
+      // Raise it (e.g. 4-10) only if a tight VBV causes frame-pacing stalls.
+      int amd_vbv_frames = 1;  // 1-240 frames
       std::optional<bool> amd_multi_hw_instance;
       // The properties below historically had aggressive hardcoded defaults that
       // forced AMF code paths FFmpeg never touches (HIGH_MOTION_QUALITY_BOOST=on,

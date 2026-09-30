@@ -68,6 +68,21 @@ const config = ref(props.config)
               <div class="form-text">{{ $t('config.amd_enforce_hrd_desc') }}</div>
             </div>
 
+            <!-- AMF VBV buffer depth (frames) -->
+            <div class="mb-3">
+              <label for="amd_vbv_frames" class="form-label">{{ $t('config.amd_vbv_frames') }}</label>
+              <input
+                type="number"
+                class="form-control"
+                id="amd_vbv_frames"
+                min="1"
+                max="240"
+                step="1"
+                v-model="config.amd_vbv_frames"
+              />
+              <div class="form-text">{{ $t('config.amd_vbv_frames_desc') }}</div>
+            </div>
+
             <!-- AMF QVBR Quality Level -->
             <div class="mb-3" v-if="config.amd_rc === 'qvbr'">
               <label for="amd_qvbr_quality" class="form-label">

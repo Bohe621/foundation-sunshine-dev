@@ -134,6 +134,13 @@ namespace amf {
     // but exposing it lets users disable it as a workaround for driver bugs.
     std::optional<bool> lowlatency_mode;
 
+    // --- HRD/VBV depth in frames (standalone path only) ---
+    // VBV_BUFFER_SIZE = (bitrate / fps) * vbv_frames. Without this the
+    // standalone path passed the raw bitrate (= one full second of data),
+    // which is far too deep for ENFORCE_HRD to ever engage on real content.
+    // nullopt = 1 frame, matching the avcodec_compat path.
+    std::optional<int> vbv_frames;
+
     // --- Input Queue Size / async_depth ---
     // Standalone H.264/HEVC: optional AMF INPUT_QUEUE_SIZE property.
     // Standalone AV1: defaults to 1 for interactive streaming, but leaves the

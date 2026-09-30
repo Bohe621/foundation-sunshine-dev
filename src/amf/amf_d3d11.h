@@ -154,6 +154,10 @@ namespace amf {
     static constexpr int HWSURFACES_IN_QUEUE_DEFAULT = 16;
     int hwsurfaces_in_queue_max = HWSURFACES_IN_QUEUE_DEFAULT;
     bool user_configured_rate_control = false;
+    // Standalone-path HRD/VBV depth in frames; mirrors config::video.amd.
+    // amd_vbv_frames so set_bitrate() can recompute the buffer at the new
+    // bitrate. Ignored on the avcodec_compat path (which has its own rule).
+    int configured_vbv_frames = 1;
     bool avcodec_compat_profile = false;
     amf_avcodec_scheduler avcodec_scheduler;
 
