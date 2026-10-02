@@ -212,11 +212,58 @@ jobs:
       - name: Install Inno Setup
         shell: pwsh
         run: |
-          $url = "https://jrsoftware.org/download.php/is.exe"
-          $installer = "$env:TEMP\innosetup.exe"
-          Invoke-WebRequest -Uri $url -OutFile $installer
-          Start-Process -FilePath $installer -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait
+          # 不要改回 https://jrsoftware.org/download.php/is.exe：该入口自 2026-07 起
+          # 只会 302 跳到 HTML 下载页（官方原话 "We only use direct links to
+          # immutable releases on GitHub now"），会把 .htm 当成 innosetup.exe 存下来；
+          # 且 jrsoftware.org 从托管 runner 访问并不稳定。改为固定官方 GitHub
+          # Release 资产（不可变发布）。
+          #
+          # 6.7.3 是 Inno Setup 6.x 的最后一个版本。若要升到 7.x，必须同时改掉
+          # 下面的缓存路径、PATH 和 ISCC.exe 引用（7.x 安装目录是 "Inno Setup 7"）。
+          $ErrorActionPreference = 'Stop'
+          $installer = Join-Path $env:TEMP 'innosetup-6.7.3.exe'
+          $expectedSha256 = '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+          $sources = @(
+            'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe',
+            'https://gh-proxy.com/https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe'
+          )
+
+          $downloaded = $false
+          foreach ($src in $sources) {
+            Write-Output "Downloading Inno Setup 6.7.3 from $src"
+            if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+              & curl.exe -fL --retry 3 --retry-delay 5 --retry-all-errors --connect-timeout 20 --max-time 600 -o $installer $src
+              if ($LASTEXITCODE -ne 0) {
+                Write-Warning "curl exited with $LASTEXITCODE for $src"
+                continue
+              }
+            } else {
+              Invoke-WebRequest -Uri $src -OutFile $installer -MaximumRetryCount 3 -RetryIntervalSec 5
+            }
+
+            $actualSha256 = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha256 -ne $expectedSha256) {
+              Write-Warning "$src returned an unexpected payload (sha256 $actualSha256, $((Get-Item -LiteralPath $installer).Length) bytes)"
+              continue
+            }
+            $downloaded = $true
+            break
+          }
+          if (-not $downloaded) {
+            throw 'Could not download a verified Inno Setup 6.7.3 installer from any source'
+          }
+
+          $proc = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -PassThru
+          if ($proc.ExitCode -ne 0) {
+            throw "Inno Setup installer exited with code $($proc.ExitCode)"
+          }
+
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $iscc)) {
+            throw "Inno Setup 6.7.3 was installed but $iscc is missing"
+          }
           echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
+          Write-Output "Inno Setup 6.7.3 ready: $iscc"
 
       # 生成未签名的打包产物
       - name: Package unsigned files

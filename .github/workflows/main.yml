@@ -357,11 +357,61 @@ jobs:
         if: steps.inno-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          # Download and install Inno Setup 6 (silent install)
-          $url = "https://jrsoftware.org/download.php/is.exe"
-          $installer = "$env:TEMP\innosetup.exe"
-          Invoke-WebRequest -Uri $url -OutFile $installer
-          Start-Process -FilePath $installer -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait
+          # Install Inno Setup 6 (silent install).
+          #
+          # Do NOT go back to https://jrsoftware.org/download.php/is.exe. Since
+          # July 2026 that endpoint only 302-redirects to the HTML downloads
+          # page ("We only use direct links to immutable releases on GitHub
+          # now"), so it silently saves an .htm file as innosetup.exe - and
+          # jrsoftware.org is not reliably reachable from hosted runners
+          # either. Pin the immutable GitHub release asset instead.
+          #
+          # 6.7.3 is the last Inno Setup 6.x release. Do not jump to 7.x without
+          # also updating the cache path, the PATH entry and the ISCC.exe
+          # references below: 7.x installs into "Inno Setup 7".
+          $ErrorActionPreference = 'Stop'
+          $installer = Join-Path $env:TEMP 'innosetup-6.7.3.exe'
+          $expectedSha256 = '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+          $sources = @(
+            'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe',
+            'https://gh-proxy.com/https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe'
+          )
+
+          $downloaded = $false
+          foreach ($src in $sources) {
+            Write-Output "Downloading Inno Setup 6.7.3 from $src"
+            if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+              & curl.exe -fL --retry 3 --retry-delay 5 --retry-all-errors --connect-timeout 20 --max-time 600 -o $installer $src
+              if ($LASTEXITCODE -ne 0) {
+                Write-Warning "curl exited with $LASTEXITCODE for $src"
+                continue
+              }
+            } else {
+              Invoke-WebRequest -Uri $src -OutFile $installer -MaximumRetryCount 3 -RetryIntervalSec 5
+            }
+
+            $actualSha256 = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha256 -ne $expectedSha256) {
+              Write-Warning "$src returned an unexpected payload (sha256 $actualSha256, $((Get-Item -LiteralPath $installer).Length) bytes)"
+              continue
+            }
+            $downloaded = $true
+            break
+          }
+          if (-not $downloaded) {
+            throw 'Could not download a verified Inno Setup 6.7.3 installer from any source'
+          }
+
+          $proc = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -PassThru
+          if ($proc.ExitCode -ne 0) {
+            throw "Inno Setup installer exited with code $($proc.ExitCode)"
+          }
+
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $iscc)) {
+            throw "Inno Setup 6.7.3 was installed but $iscc is missing"
+          }
+          Write-Output "Inno Setup 6.7.3 ready: $iscc"
 
       - name: Add Inno Setup to PATH
         shell: pwsh
